@@ -61,15 +61,18 @@ def get_gpg_signature(file_name, keyid):
     with open(file_name, 'rb') as stream:
         return gpg.sign_file(stream, detach=True, keyid=keyid, passphrase=password)
 
-def make_certificate(output_file, gpg_signature, minted_date):
+def make_certificate(output_file, gpg_signature, minted_date, signature_file):
     with open('certificate-template.svg') as template:
         source = Template(template.read())
+
+    with open(signature_file) as artist_template:
+        signature = artist_template.read()
     
     with open(output_file, 'w') as output:
         substitutions = {
             'PGP_SIGNATURE': gpg_signature,
             'MINTED_DATE': minted_date,
-            'ARTIST_SIGNATURE': ''
+            'ARTIST_SIGNATURE': signature
         }
 
         output.write(source.substitute(substitutions))
@@ -80,7 +83,9 @@ def calculate_steno_password(image):
 def get_options():
     options_parser = argparse.ArgumentParser(description='Pre-process an image for NFT minting')
     options_parser.add_argument('source_file', type=str, help='File to process')
+    options_parser.add_argument('signature_file', type=str, help='File containing signature')
     options_parser.add_argument('--description', '-d', type=str, help='Description of image for EXIF data')
+    options_parser.add_argument('--rotate', type=int, help='Rotate by n degrees.')
     options_parser.add_argument('--output', '-o', type=str, help='Base output filename (without extension)  Defaults to base name of source.')
     options_parser.add_argument('--steno-file', type=str, help='File to use for stenography. (Defaults to a scaled copy of main image.)')
     options_parser.add_argument('--steno-password', type=str, help='Password to use for stenography', dest='steno_password')
@@ -95,6 +100,9 @@ image = open_image(input_filename)
 if not image:
     print('No image found, exiting.')
     sys.exit()
+
+if options.rotate:
+    image = image.rotate(options.rotate, expand=True)
 
 with open('config.json') as config_file:
     config = json.load(config_file)
@@ -126,7 +134,7 @@ if options.gpg:
 
 if options.certificate:
     print('Generating certificate...', end='')
-    make_certificate(svg_filename, gpg_signature, datetime.now().strftime("%Y-%m-%d"))
+    make_certificate(svg_filename, gpg_signature, datetime.now().strftime("%Y-%m-%d"), options.signature_file)
     print('Done.')
 
 

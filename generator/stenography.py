@@ -5,7 +5,6 @@ from PIL import Image
 
 class Stenography:
     def __init__(self, image, *, file_path=None, steno_password=None):
-        print('__init__ called.')
         self._image = image
         self._file_path = file_path
         self._steno_password = steno_password
@@ -22,7 +21,8 @@ class Stenography:
         except FileNotFoundError:
             pass
         self._steno_password = self._generate_password()
-        steno_host.insert_message(self._generate_hidden_data(), bits=1, password=self._steno_password, parasite_filename=self._file_path)
+        hidden_data = self._generate_hidden_data()
+        steno_host.insert_message(hidden_data, bits=1, password=self._steno_password, parasite_filename=self._file_path)
         return Image.fromarray(steno_host.data)
 
     @property
